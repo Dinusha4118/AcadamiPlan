@@ -4,6 +4,7 @@ const Timetable = require('../models/Timetable');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const LectureHall = require('../models/LectureHall');
+const nodemailer = require('nodemailer');
 
 // GET all timetable entries
 router.get('/', async (req, res) => {
@@ -92,6 +93,40 @@ router.get('/conflicts', async (req, res) => {
     res.json(conflicts);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/send-timetable-email', upload.single('pdf'), async (req, res) => {
+  try {
+    const { recipients, subject, message } = req.body;
+    const pdfBuffer = req.file.buffer;
+
+    // Setup nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: 'your-email@gmail.com',
+        pass: 'your-email-password',
+      },
+    });
+
+    await transporter.sendMail({
+      from: 'your-email@gmail.com',
+      to: recipients.split(',').map(email => email.trim()),
+      subject,
+      text: message,
+      attachments: [
+        {
+          filename: 'timetable.pdf',
+          content: pdfBuffer,
+        },
+      ],
+    });
+
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (err) {
+    console.error('Email error:', err);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
